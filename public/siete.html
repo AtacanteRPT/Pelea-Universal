@@ -1,0 +1,32 @@
+
+<html>
+
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <script>
+    $(document).ready(function () {
+        $("button").click(function () {
+            $.ajax({
+                url: "http://paginasiete.bo/a/aps/encuestas/dinamicos/ajax/votar.asp",
+                type: "POST",
+                data: "id_encuesta=471&resultado=no",
+                success: function (data, textStatus, jqXHR) {
+                    $( "#encuesta471" ).html( data );
+
+                }
+            });
+
+
+        });
+    });
+</script>
+</head>
+
+<body>
+
+    <button>Send an HTTP POST request to a page and get the result back</button>
+<div id="encuesta471"></div>
+
+</body>
+
+</html>F
