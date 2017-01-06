@@ -20,6 +20,8 @@ document.addEventListener("DOMContentLoaded", function () {
     var JUGADORES = [];
     var BRAID_CorriendoDer = new Image();
     BRAID_CorriendoDer.src = "img/braid_corriendoDer.png";
+    var BRAID_CorriendoIzq = new Image();
+    BRAID_CorriendoDerIzq.src = "img/braid_corriendoIzq.png";
     var BRAID_ParadoDer = new Image();
     BRAID_ParadoDer.src = "img/braid_paradoDer.png";
     var BRAID_subir = new Image();
