@@ -21,7 +21,7 @@ document.addEventListener("DOMContentLoaded", function () {
     var BRAID_CorriendoDer = new Image();
     BRAID_CorriendoDer.src = "img/braid_corriendoDer.png";
     var BRAID_CorriendoIzq = new Image();
-    BRAID_CorriendoDerIzq.src = "img/braid_corriendoIzq.png";
+    BRAID_CorriendoIzq.src = "img/braid_corriendoIzq.png";
     var BRAID_ParadoDer = new Image();
     BRAID_ParadoDer.src = "img/braid_paradoDer.png";
     var BRAID_subir = new Image();
@@ -29,11 +29,20 @@ document.addEventListener("DOMContentLoaded", function () {
     var Bala_explocion = new Image();
     Bala_explocion.src = "img/fireball.gif";
 
+    var Bala_Misil = new Image();
+    Bala_Misil.src = 'img/misil.png'
+
     SOCKET.on('crear_player', player => {
-        console.log('entrando en CrearPlayer' + player.id);
+        console.log('entrando en CrearPlayer' + player.guerrero.id);
         MIPLAYER = player.guerrero;
     });
-
+    SOCKET.on('draw_player', data => {
+        JUGADORES = data.enemigos;
+    });
+    SOCKET.on('enemigo_creado', data => {
+        //JUGADORES.push(data.enemigo);
+        console.log('enemigo creado + ' + data.enemigo.id);
+    });
     function inicializar() {
     }
     function dibujar() {
@@ -43,10 +52,6 @@ document.addEventListener("DOMContentLoaded", function () {
         controladorEstados.dibujar();
     }
 
-    SOCKET.on('draw_player', data => {
-
-        JUGADORES = data.enemigos;
-    });
     function actualizar(delta) {
         controladorEstados.actualizar(delta);
     }
@@ -143,24 +148,28 @@ document.addEventListener("DOMContentLoaded", function () {
     class Level1 {
         constructor(controladorEstado) {
             this.ce = controladorEstado;
-            this.guerrero = new Player(MIPLAYER.id, MIPLAYER.x, MIPLAYER.y);
-            this.otrosJugadores = [];
-
+            this.guerrero = new Player(MIPLAYER.id, MIPLAYER.x, MIPLAYER.y , MIPLAYER.dx , MIPLAYER.dy, MIPLAYER.ancho, MIPLAYER.alto);
+            this.otrosJugadores = []; 
         }
-
         actualizar(delta) {
+            JUGADORES.forEach(elem =>{
+
+            })
             this.guerrero.actualizar(delta);
-            SOCKET.emit('draw_player', { id: this.guerrero.getId(), x: this.guerrero.getX(), y: this.guerrero.getY() });
+
         }
         dibujar() {
             ctx.fillStyle = 'Red';
             ctx.font = 'italic 60pt Calibri';
             JUGADORES.forEach(elem => {
-                ctx.fillRect(elem.x, elem.y, 80, 100);
+               if(elem.id != MIPLAYER.id){
+                    ctx.fillRect(elem.x,elem.y,elem.ancho,elem.alto);
+                }
             });
             //  ctx.fillText("Juego Iniciado", 150, 200);
             // dibujar guerrero
             this.guerrero.dibujar();
+
             this.otrosJugadores = [];
         }
 
@@ -178,7 +187,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 this.guerrero.setBajar = true;
             }
             if (TECLA_F === e.keyCode) {
-                this.guerrero.disparar();
+                this.guerrero.dispararFuego();
+            }
+            if (TECLA_C === e.keyCode) {
+                this.guerrero.dispararMisil();
             }
         }
 
@@ -239,8 +251,8 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     class Player extends ObjetoMapa {
 
-        constructor(id, x, y) {
-            super(x, y, 0, 0, 100, 140);
+        constructor(id, x, y,dx,dy ,ancho,alto) {
+            super(x, y, dx, dy, ancho, alto);
             this.PARADO = 0
             this.CORRIENDO_DER = 1
             this.CORRIENDO_IZQ = 2
@@ -279,8 +291,14 @@ document.addEventListener("DOMContentLoaded", function () {
             return this.id;
         }
 
-        disparar() {
-            var bala = new Bala(this.x + this.ancho, this.y + (this.alto / 2));
+        dispararFuego() {
+            var bolaFuego = 0;
+            var bala = new Bala(this.x + this.ancho, this.y + (this.alto / 2), bolaFuego);
+            this.balas.push(bala);
+        }
+        dispararMisil() {
+            var misil = 1;
+            var bala = new Bala(this.x + this.ancho, this.y + (this.alto / 2), misil);
             this.balas.push(bala);
         }
         dibujar() {
@@ -326,7 +344,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 if (this.estadoAnimacion != this.CORRIENDO_DER) {
                     this.estadoAnimacion = this.CORRIENDO_DER
-
+                    this.ancho = 130;
                     this.altoSprite = BRAID_CorriendoDer.height / 3
                     this.anchoSprite = BRAID_CorriendoDer.width / 9
                     this.braid.img = BRAID_CorriendoDer
@@ -339,6 +357,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 if (this.estadoAnimacion != this.CORRIENDO_IZQ) {
                     this.estadoAnimacion = this.CORRIENDO_IZQ
+                    this.ancho = 130;
                     this.altoSprite = BRAID_CorriendoDer.height / 3
                     this.anchoSprite = BRAID_CorriendoDer.width / 9
                     this.braid.img = BRAID_CorriendoDer
@@ -351,6 +370,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 if (this.estadoAnimacion != this.SUBIENDO) {
                     this.estadoAnimacion = this.SUBIENDO
+                    this.ancho = 100;
                     this.altoSprite = BRAID_subir.height / 1
                     this.anchoSprite = BRAID_subir.width / 8
                     this.braid.img = BRAID_subir
@@ -362,6 +382,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 this.y = this.y + this.dy;
                 if (this.estadoAnimacion != this.BAJANDO) {
                     this.estadoAnimacion = this.BAJANDO
+                    this.ancho = 100;
                     this.altoSprite = BRAID_subir.height / 1
                     this.anchoSprite = BRAID_subir.width / 8
                     this.braid.img = BRAID_subir
@@ -371,6 +392,7 @@ document.addEventListener("DOMContentLoaded", function () {
             } else {
                 if (this.estadoAnimacion != this.PARADO) {
                     this.estadoAnimacion = this.PARADO
+                    this.ancho = 95;
                     this.altoSprite = BRAID_ParadoDer.height / 3
                     this.anchoSprite = BRAID_ParadoDer.width / 9
                     this.braid.img = BRAID_ParadoDer
@@ -387,33 +409,42 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             });
             this.animacion.actualizar();
+            SOCKET.emit('draw_player', { id: this.id, x: this.x, y: this.y ,dx : this.dx , dy : this.dy, ancho: this.ancho , alto : this.alto });
 
         }
+
     }
     class Bala extends ObjetoMapa {
 
-        constructor(x, y) {
-            super(x, y, 0, 0, 40, 40);
+        constructor(x, y, tipo) {
+            super(x, y, 0, 0, 50, 50);
             this.derecha = true;
+            this.BOLA_FUEGO = 0;
+            this.MISIL = 1;
+            this.bala = {};
+
             this.spritesBala = {
                 bolaFuego: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 0 }
                     //,{x:0,y:1},{x:1,y:1},{x:2,y:1},{x:3,y:1}
-                ]
+                ],
+                misil: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 0 },
+                { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 }, { x: 3, y: 1 }]
             }
             this.animacion = new Animacion();
-            this.animacion.setFrames(this.spritesBala.bolaFuego)
+            if (tipo == this.BOLA_FUEGO) {
+                this.animacion.setFrames(this.spritesBala.bolaFuego)
+                this.bala.img = Bala_explocion;
+                this.anchoSprite = Bala_explocion.width / 4;
+                this.altoSprite = Bala_explocion.height / 2;
+            } else {
+                this.animacion.setFrames(this.spritesBala.misil)
+                this.bala.img = Bala_Misil;
+                this.anchoSprite = Bala_Misil.width / 4;
+                this.altoSprite = Bala_Misil.height / 2;
+                this.ancho = 100;
+            }
             this.animacion.setDelay(10);
 
-            this.anchoSprite = Bala_explocion.width / 4;
-            this.altoSprite = Bala_explocion.height / 2;
-
-            this.bala = {
-                img: Bala_explocion,
-                x: this.animacion.getFrame.x,
-                y: this.animacion.getFrame.y,
-                ancho: this.anchoSprite,
-                alto: this.altoSprite
-            }
         }
         getId() {
             return this.id;
@@ -423,7 +454,6 @@ document.addEventListener("DOMContentLoaded", function () {
             if (this.derecha) {
                 this.x += 5;
             }
-
             this.bala.x = this.animacion.getFrame.x * this.anchoSprite
             this.bala.y = this.animacion.getFrame.y * this.altoSprite
             this.bala.ancho = this.anchoSprite
@@ -436,7 +466,7 @@ document.addEventListener("DOMContentLoaded", function () {
             ctx.fillStyle = 'BLue';
             // ctx.fillRect(this.x, this.y, this.ancho, this.alto);
 
-            ctx.drawImage(this.bala.img, this.bala.x, this.bala.y, this.bala.ancho, this.bala.alto, this.x, this.y, this.ancho * 2, this.alto * 2)
+            ctx.drawImage(this.bala.img, this.bala.x, this.bala.y, this.bala.ancho, this.bala.alto, this.x, this.y, this.ancho, this.alto)
         }
     }
 
