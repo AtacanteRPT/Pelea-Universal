@@ -18,12 +18,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
     var MIPLAYER;
     var JUGADORES = [];
-    var BRAID_Corriendo = new Image();
-    BRAID_Corriendo.src = "img/braid_corriendo.png";
-    var BRAID_Parado = new Image();
-    BRAID_Parado.src = "img/braid_parado.png";
+    var BRAID_CorriendoDer = new Image();
+    BRAID_CorriendoDer.src = "img/braid_corriendoDer.png";
+    var BRAID_ParadoDer = new Image();
+    BRAID_ParadoDer.src = "img/braid_paradoDer.png";
     var BRAID_subir = new Image();
     BRAID_subir.src = "img/braid_subir.png";
+    var Bala_explocion = new Image();
+    Bala_explocion.src = "img/fireball.gif";
 
     SOCKET.on('crear_player', player => {
         console.log('entrando en CrearPlayer' + player.id);
@@ -195,9 +197,11 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     class ObjetoMapa {
 
-        constructor(x, y, ancho, alto) {
+        constructor(x, y, dx, dy, ancho, alto) {
             this.x = x;
             this.y = y;
+            this.dx = dx;
+            this.dy = dy;
             this.ancho = ancho;
             this.alto = alto;
 
@@ -234,32 +238,39 @@ document.addEventListener("DOMContentLoaded", function () {
     class Player extends ObjetoMapa {
 
         constructor(id, x, y) {
-            super(x, y, 80, 100);
-            this.PARADO = 0;
-            this.CORRIENDO = 1;
-            this.SUBIENDO = 2;
-
+            super(x, y, 0, 0, 100, 140);
+            this.PARADO = 0
+            this.CORRIENDO_DER = 1
+            this.CORRIENDO_IZQ = 2
+            this.SUBIENDO = 3
+            this.BAJANDO = 4
+            this.estadoAnimacion = this.PARADO;
             this.balas = [];
             this.id = id;
             this.estado = 'vivo';
             this.nroBalas = 0;
-
-
-            this.anchoSprite = BRAID_Corriendo.width / 9;
-            this.altoSprite = BRAID_Corriendo.height / 3;
+            this.anchoSprite = BRAID_ParadoDer.width / 9;
+            this.altoSprite = BRAID_ParadoDer.height / 3;
             this.spritesPlayer = {
-                parado: {
-
-                },
-                corriendo: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 0 }, { x: 4, y: 0 }, { x: 5, y: 0 }, { x: 6, y: 0 }, { x: 7, y: 0 }, { x: 8, y: 0 }
+                paradoDer: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 0 }, { x: 4, y: 0 }, { x: 5, y: 0 }, { x: 6, y: 0 }, { x: 7, y: 0 }, { x: 8, y: 0 }
                     , { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 }, { x: 3, y: 1 }, { x: 4, y: 1 }, { x: 5, y: 1 }, { x: 6, y: 1 }, { x: 7, y: 1 }, { x: 8, y: 1 }
-                    , { x: 0, y: 2 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }, { x: 4, y: 2 }, { x: 5, y: 2 }, { x: 6, y: 2 }, { x: 7, y: 2 }, { x: 8, y: 2 }]
+                    , { x: 0, y: 2 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }],
+                corriendoDer: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 0 }, { x: 4, y: 0 }, { x: 5, y: 0 }, { x: 6, y: 0 }, { x: 7, y: 0 }, { x: 8, y: 0 }
+                    , { x: 0, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 1 }, { x: 3, y: 1 }, { x: 4, y: 1 }, { x: 5, y: 1 }, { x: 6, y: 1 }, { x: 7, y: 1 }, { x: 8, y: 1 }
+                    , { x: 0, y: 2 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }, { x: 4, y: 2 }, { x: 5, y: 2 }, { x: 6, y: 2 }, { x: 7, y: 2 }, { x: 8, y: 2 }],
+                subir: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 0 }, { x: 4, y: 0 }, { x: 5, y: 0 }, { x: 6, y: 0 }, { x: 7, y: 0 }]
             };
-            this.animacion = new Animacion();
-            this.animacion.setFrames(this.spritesPlayer.corriendo);
-            this.animacion.setDelay(10);
-            this.imgBraid = BRAID_Corriendo
 
+            this.animacion = new Animacion();
+            this.animacion.setFrames(this.spritesPlayer.paradoDer);
+            this.animacion.setDelay(10);
+            this.braid = {
+                img: BRAID_ParadoDer,
+                x: this.animacion.getFrame.x * this.anchoSprite,
+                y: this.animacion.getFrame.y * this.altoSprite,
+                ancho: this.anchoSprite,
+                alto: this.altoSprite
+            };
 
         }
         getId() {
@@ -274,35 +285,104 @@ document.addEventListener("DOMContentLoaded", function () {
             this.balas.forEach(bala => {
                 bala.dibujar();
             });
-            this.braid = {
-                img: this.imgBraid,
-                x: this.animacion.getFrame.x * this.anchoSprite,
-                y: this.animacion.getFrame.y * this.altoSprite,
-                ancho: this.anchoSprite,
-                alto: this.altoSprite
-            };
+            this.braid.x = this.animacion.getFrame.x * this.anchoSprite
+            this.braid.y = this.animacion.getFrame.y * this.altoSprite
+            this.braid.ancho = this.anchoSprite
+            this.braid.alto = this.altoSprite
+
 
             ctx.fillStyle = 'Red';
             ctx.drawImage(this.braid.img, this.braid.x, this.braid.y, this.braid.ancho, this.braid.alto, this.x, this.y, this.ancho, this.alto)
             //ctx.fillRect(this.x, this.y, this.ancho, this.alto);
         }
 
-        actualizar(delta) {
-            if (this.derecha) {
-                this.x++;
-            }
-            if (this.izquierda) {
-                this.x--;
-            }
-            if (this.subir) {
-                this.y--;
-            }
-            if (this.bajar) {
-                this.y++;
-            }
+        actualizarPocision() {
 
-            this.balas.forEach(bala => {
+            if (this.derecha) {
+                this.dx = 1;
+            }
+            else if (this.izquierda) {
+                this.dx = -1;
+            }
+            else if (this.subir) {
+                this.dy = -1;
+            }
+            else if (this.bajar) {
+                this.dy = 1;
+            } else {
+                this.dx = 0, this.dy = 0
+
+            }
+        }
+
+        actualizar(delta) {
+
+            this.actualizarPocision();
+
+            if (this.derecha) {
+                this.x = this.x + this.dx;
+
+                if (this.estadoAnimacion != this.CORRIENDO_DER) {
+                    this.estadoAnimacion = this.CORRIENDO_DER
+
+                    this.altoSprite = BRAID_CorriendoDer.height / 3
+                    this.anchoSprite = BRAID_CorriendoDer.width / 9
+                    this.braid.img = BRAID_CorriendoDer
+                    this.animacion.setFrames(this.spritesPlayer.corriendoDer);
+                    this.animacion.setDelay(10);
+                }
+            }
+            else if (this.izquierda) {
+                this.x = this.x + this.dx;
+
+                if (this.estadoAnimacion != this.CORRIENDO_IZQ) {
+                    this.estadoAnimacion = this.CORRIENDO_IZQ
+                    this.altoSprite = BRAID_CorriendoDer.height / 3
+                    this.anchoSprite = BRAID_CorriendoDer.width / 9
+                    this.braid.img = BRAID_CorriendoDer
+                    this.animacion.setFrames(this.spritesPlayer.corriendoDer);
+                    this.animacion.setDelay(10);
+                }
+            }
+            else if (this.subir) {
+                this.y = this.y + this.dy;
+
+                if (this.estadoAnimacion != this.SUBIENDO) {
+                    this.estadoAnimacion = this.SUBIENDO
+                    this.altoSprite = BRAID_subir.height / 1
+                    this.anchoSprite = BRAID_subir.width / 8
+                    this.braid.img = BRAID_subir
+                    this.animacion.setFrames(this.spritesPlayer.subir);
+                    this.animacion.setDelay(100);
+                }
+            }
+            else if (this.bajar) {
+                this.y = this.y + this.dy;
+                if (this.estadoAnimacion != this.BAJANDO) {
+                    this.estadoAnimacion = this.BAJANDO
+                    this.altoSprite = BRAID_subir.height / 1
+                    this.anchoSprite = BRAID_subir.width / 8
+                    this.braid.img = BRAID_subir
+                    this.animacion.setFrames(this.spritesPlayer.subir);
+                    this.animacion.setDelay(100);
+                }
+            } else {
+                if (this.estadoAnimacion != this.PARADO) {
+                    this.estadoAnimacion = this.PARADO
+                    this.altoSprite = BRAID_ParadoDer.height / 3
+                    this.anchoSprite = BRAID_ParadoDer.width / 9
+                    this.braid.img = BRAID_ParadoDer
+                    this.animacion.setFrames(this.spritesPlayer.paradoDer);
+                    this.animacion.setDelay(10);
+                }
+            }
+            console.log("balas : " + this.balas.length);
+            this.balas.forEach((bala, i) => {
                 bala.actualizar();
+                if (bala.getX() > ANCHO) {
+                    this.balas.splice(i, 1);
+                    return;
+                }
             });
             this.animacion.actualizar();
 
@@ -311,8 +391,27 @@ document.addEventListener("DOMContentLoaded", function () {
     class Bala extends ObjetoMapa {
 
         constructor(x, y) {
-            super(x, y, 20, 20);
+            super(x, y, 0, 0, 40, 40);
             this.derecha = true;
+            this.spritesBala = {
+                bolaFuego: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 0 }
+                    //,{x:0,y:1},{x:1,y:1},{x:2,y:1},{x:3,y:1}
+                ]
+            }
+            this.animacion = new Animacion();
+            this.animacion.setFrames(this.spritesBala.bolaFuego)
+            this.animacion.setDelay(10);
+
+            this.anchoSprite = Bala_explocion.width / 4;
+            this.altoSprite = Bala_explocion.height / 2;
+
+            this.bala = {
+                img: Bala_explocion,
+                x: this.animacion.getFrame.x,
+                y: this.animacion.getFrame.y,
+                ancho: this.anchoSprite,
+                alto: this.altoSprite
+            }
         }
         getId() {
             return this.id;
@@ -321,13 +420,21 @@ document.addEventListener("DOMContentLoaded", function () {
         actualizar(delta) {
             if (this.derecha) {
                 this.x += 5;
-
             }
+
+            this.bala.x = this.animacion.getFrame.x * this.anchoSprite
+            this.bala.y = this.animacion.getFrame.y * this.altoSprite
+            this.bala.ancho = this.anchoSprite
+            this.bala.alto = this.altoSprite
+
+            this.animacion.actualizar();
         }
 
         dibujar() {
             ctx.fillStyle = 'BLue';
-            ctx.fillRect(this.x, this.y, this.ancho, this.alto);
+            // ctx.fillRect(this.x, this.y, this.ancho, this.alto);
+
+            ctx.drawImage(this.bala.img, this.bala.x, this.bala.y, this.bala.ancho, this.bala.alto, this.x, this.y, this.ancho * 2, this.alto * 2)
         }
     }
 
@@ -340,11 +447,10 @@ document.addEventListener("DOMContentLoaded", function () {
             this.delay = 0;
             this.playedOnce = false;
         }
-        setFrames(frames) {
-            this.frames = frames;
-            this.currentFrame = 0;
+        setFrames(framesNuevos) {
+            this.frames = framesNuevos;
+            this.contadorFrame = 0;
             this.startTime = Date.now();
-            console.log('Date.now : ' + this.startTime)
             this.playedOnce = false;
         }
         setDelay(d) { this.delay = d; }
@@ -353,21 +459,17 @@ document.addEventListener("DOMContentLoaded", function () {
             if (this.delay == -1) { return };
 
             var lapso = (Date.now() - this.startTime);
-            console.log('lapso :  ' + lapso);
+
 
             if (lapso > this.delay) {
-                 console.log('contador de frames ' + this.contadorFrame);
-                console.log('Frame X :' + this.frames[this.contadorFrame].x);
-                console.log('Frame Y :' + this.frames[this.contadorFrame].y);
                 this.contadorFrame++;
                 this.startTime = Date.now();
-               
+
             }
             if (this.contadorFrame == this.frames.length) {
                 this.contadorFrame = 0;
                 this.playedOnce = true;
             }
-            console.log("entrando en animacion");
 
         }
         get getFrame() { return this.frames[this.contadorFrame]; }
