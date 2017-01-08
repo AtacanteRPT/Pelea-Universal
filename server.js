@@ -13,22 +13,32 @@ var contId = 0;
 
 io.on('connection', function (socket) {
     var player = {
-        id : contId, 
-        x : 0,
-        y : 0
-    };
+        id: contId,
+        x: 0,
+        y: 0,
+        dx: 0,
+        dy: 0,
+        derecha: false,
+        izquierda: false,
+        subir: false,
+        bajar: false,
+        balas: [],
+        alto: 150,
+        ancho: 95
+    }
     player_history.push(player);
-    contId ++;
-    socket.emit('crear_player', {guerrero : player});
-    console.log('player Creado'+ player.id);
+    socket.emit('crear_player', { guerrero: player });
+    io.emit('enemigo_creado', { enemigos: player_history });
+    contId++;
+
+    console.log('player Creado' + player.id);
     // for (var i in player_history) {
     //     socket.emit('otros_player', { enemigos: player_history[i] });
     // }
-    
-    
+
     socket.on('draw_player', function (data) {
         player_history[data.id] = data;
-        io.emit('draw_player', { enemigos : player_history});
+        io.emit('draw_player', { enemigos: player_history });
     });
 });
 
